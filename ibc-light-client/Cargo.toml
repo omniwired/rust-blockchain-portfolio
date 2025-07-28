@@ -1,0 +1,12 @@
+[package]
+name = "ibc-light-client"
+version = "0.1.0"
+edition = "2021"
+
+[dependencies]
+anyhow = { workspace = true }
+serde = { workspace = true }
+serde_json = { workspace = true }
+tendermint = { workspace = true }
+tendermint-proto = { workspace = true }
+ed25519-dalek = { workspace = true }
