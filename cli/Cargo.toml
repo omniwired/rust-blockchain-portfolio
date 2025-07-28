@@ -1,0 +1,18 @@
+[package]
+name = "ibc-mini-cli"
+version = "0.1.0"
+edition = "2021"
+
+[[bin]]
+name = "ibc-mini"
+path = "src/main.rs"
+
+[dependencies]
+anyhow = { workspace = true }
+clap = { workspace = true }
+serde_json = { workspace = true }
+tokio = { workspace = true }
+ibc-light-client = { path = "../ibc-light-client" }
+zk-circuit = { path = "../zk-circuit" }
+ark-std = { workspace = true }
+hex = "0.4"
