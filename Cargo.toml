@@ -2,9 +2,8 @@
 resolver = "2"
 members = [
     "ibc-light-client",
-    "zk-circuit", 
-    "cli",
-    "cosmwasm-verifier"
+    "zk-circuit",
+    "cli"
 ]
 
 [workspace.dependencies]
@@ -32,9 +31,7 @@ ed25519-dalek = "2.0"
 # CLI dependencies
 clap = { version = "4.0", features = ["derive"] }
 
-# CosmWasm dependencies  
-cosmwasm-std = "1.5"
-cosmwasm-schema = "1.5"
+
 
 [profile.release]
 panic = "abort"
