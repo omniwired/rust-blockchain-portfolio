@@ -16,3 +16,7 @@ ibc-light-client = { path = "../ibc-light-client" }
 zk-circuit = { path = "../zk-circuit" }
 ark-std = { workspace = true }
 hex = "0.4"
+rand = "0.8"
+ed25519-dalek = { workspace = true, features = ["rand_core"] }
+sha2 = "0.10"
+ark-bn254 = { workspace = true }
