@@ -54,6 +54,8 @@ async fn generate_proof(height: u64) -> Result<()> {
     let vk1 = sk1.verifying_key();
     let sk2 = SigningKey::generate(&mut csprng);
     let vk2 = sk2.verifying_key();
+    
+    // TODO: add third validator when we figure out how to handle 3/4 voting power
 
     let validators = vec![
         Validator {
@@ -108,6 +110,7 @@ async fn generate_proof(height: u64) -> Result<()> {
     let is_valid = light_client.verify_header(&header)?;
 
     if !is_valid {
+        // this shouldn't happen unless we messed up the mock
         anyhow::bail!("Header verification failed");
     }
 
@@ -117,10 +120,11 @@ async fn generate_proof(height: u64) -> Result<()> {
 
     // Generate ZK proof
     println!("🔧 Setting up ZK circuit...");
-    let mut rng = ark_std::rand::rngs::StdRng::seed_from_u64(42); // Use deterministic RNG for demo
+    let mut rng = ark_std::rand::rngs::StdRng::seed_from_u64(42); // deterministic for testing
     let prover = ZkProver::setup(&mut rng)?;
 
     println!("⚡ Generating proof...");
+    // just using random values for now
     let a = Fr::rand(&mut rng);
     let b = Fr::rand(&mut rng);
     let (_proof, c) = prover.prove(a, b, &mut rng)?;
@@ -137,12 +141,15 @@ async fn run_demo() -> Result<()> {
     println!("1. Mock Tendermint header verification");
     println!("2. ZK proof generation");
 
+    // just hardcode height for demo
     generate_proof(1000).await?;
 
     println!("\n🏆 Demo completed successfully!");
     println!("   In a real implementation:");
     println!("   - Header would be fetched from Osmosis RPC");
     println!("   - ZK proof would be verified on-chain");
+    
+    // TODO: actually verify the proof lol
 
     Ok(())
 }

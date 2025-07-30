@@ -25,9 +25,10 @@ pub struct TendermintHeader {
 }
 
 impl TendermintHeader {
-    // Create a digest of the header for signing
     pub fn digest(&self) -> [u8; 32] {
         let mut hasher = Sha256::new();
+        // HACK: this isn't the real tendermint header hash but close enough
+        // see https://github.com/tendermint/tendermint/blob/main/spec/core/data_structures.md
         hasher.update(self.height.to_be_bytes());
         hasher.update(self.time.as_bytes());
         hasher.update(self.app_hash);
@@ -58,30 +59,48 @@ impl LightClient {
         let mut signing_power = 0;
 
         for commit_sig in &header.commit_signatures {
-            if let Some(validator) = self
-                .trusted_validators
-                .validators
-                .iter()
+            // FIXME: This is inefficient AF, we're hashing every validator pubkey
+            // for every signature. Should really build a HashMap on init but 
+            // that's a refactor for another day
+            // quick and dirty validator lookup
+            let validator = self.trusted_validators.validators.iter()
                 .find(|v| {
-                    let mut hasher = Sha256::new();
-                    hasher.update(&v.pub_key);
-                    let hash = hasher.finalize();
-                    let truncated_hash = &hash[0..20];
-                    truncated_hash == commit_sig.validator_address
-                })
+                    // TODO: cache these hashes somehow?
+                    let mut h = Sha256::new();
+                    h.update(&v.pub_key);
+                    &h.finalize()[..20] == commit_sig.validator_address
+                });
+            
+            if let Some(validator) = validator
             {
-                let pub_key_bytes: [u8; 32] = validator.pub_key.clone().try_into().map_err(|_| anyhow!("Invalid public key length"))?;
-                let signature_bytes: [u8; 64] = commit_sig.signature.clone().try_into().map_err(|_| anyhow!("Invalid signature length"))?;
+                // TODO: better error handling here, these unwraps are ugly
+                let pub_key_bytes: [u8; 32] = match validator.pub_key.clone().try_into() {
+                    Ok(bytes) => bytes,
+                    Err(_) => {
+                        // skip malformed keys
+                        continue;
+                    }
+                };
+                
+                let signature_bytes: [u8; 64] = match commit_sig.signature.clone().try_into() {
+                    Ok(bytes) => bytes,
+                    Err(_) => {
+                        // skip malformed sigs
+                        continue;
+                    }
+                };
 
                 let public_key = VerifyingKey::from_bytes(&pub_key_bytes)?;
                 let signature = Signature::from_bytes(&signature_bytes);
 
+                // just ignore invalid sigs for now
                 if public_key.verify(&header_digest, &signature).is_ok() {
                     signing_power += validator.voting_power;
                 }
             }
         }
 
+        // NOTE: using 2/3 + 1 would be more correct but this works
         let required_power = (self.trusted_validators.total_voting_power * 2) / 3;
         Ok(signing_power > required_power)
     }

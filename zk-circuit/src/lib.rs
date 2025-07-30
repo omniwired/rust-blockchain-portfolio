@@ -18,10 +18,18 @@ pub struct AddCircuit {
 
 impl ConstraintSynthesizer<Fr> for AddCircuit {
     fn generate_constraints(self, cs: ConstraintSystemRef<Fr>) -> Result<(), SynthesisError> {
-        let a_var = FpVar::new_input(cs.clone(), || self.a.ok_or(SynthesisError::AssignmentMissing))?;
-        let b_var = FpVar::new_witness(cs.clone(), || self.b.ok_or(SynthesisError::AssignmentMissing))?;
-        let c_var = FpVar::new_input(cs.clone(), || self.c.ok_or(SynthesisError::AssignmentMissing))?;
+        // witness allocation
+        let a_var = FpVar::new_input(cs.clone(), || {
+            self.a.ok_or(SynthesisError::AssignmentMissing)
+        })?;
+        let b_var = FpVar::new_witness(cs.clone(), || {
+            self.b.ok_or(SynthesisError::AssignmentMissing)
+        })?;
+        let c_var = FpVar::new_input(cs.clone(), || {
+            self.c.ok_or(SynthesisError::AssignmentMissing)
+        })?;
 
+        // constraint: a + b = c
         let sum = a_var + b_var;
         c_var.enforce_equal(&sum)?;
 
@@ -36,6 +44,7 @@ pub struct ZkProver {
 
 impl ZkProver {
     pub fn setup<R: RngCore + CryptoRng>(mut rng: R) -> anyhow::Result<Self> {
+        // dummy circuit for setup
         let circuit = AddCircuit {
             a: None,
             b: None,
@@ -57,6 +66,7 @@ impl ZkProver {
         b: Fr,
         mut rng: R,
     ) -> anyhow::Result<(Proof<Bn254>, Fr)> {
+        // lol this is just addition but with extra steps
         let c = a + b;
 
         let circuit = AddCircuit {
@@ -65,6 +75,7 @@ impl ZkProver {
             c: Some(c),
         };
 
+        // this takes forever on debug builds btw
         let proof = Groth16::<Bn254>::prove(&self.proving_key, circuit, &mut rng)
             .map_err(|e| anyhow::anyhow!("Proving failed: {:?}", e))?;
 
